@@ -1,0 +1,15 @@
+{
+  "name": "mern-chat-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node backend/server.js"
+  },
+  "author": "Tomas De Piano",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
