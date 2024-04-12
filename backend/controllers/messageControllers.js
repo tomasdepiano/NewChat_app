@@ -3,6 +3,21 @@ import Message from "../models/message.Model.js";
 import User from "../models/user.Model.js";
 import Chat from "../models/chat.Model.js";
 
+const allMessages = asyncHandler(async (req, res) => {
+  try {
+    const messages = await Message.find({ chat: req.params.chatId })
+      .populate("sender", "name pic email")
+      .populate("chat");
+    res.json(messages);
+  } catch (error) {
+    res.status(400);
+    throw new Error(error.message);
+  }
+});
+
+//@description     Create New Message
+//@route           POST /api/Message/
+//@access          Protected
 const sendMessage = asyncHandler(async (req, res) => {
   const { content, chatId } = req.body;
 
@@ -12,7 +27,7 @@ const sendMessage = asyncHandler(async (req, res) => {
   }
 
   var newMessage = {
-    sender: req.user._id,
+    sender: req.user?._id,
     content: content,
     chat: chatId,
   };
@@ -27,9 +42,7 @@ const sendMessage = asyncHandler(async (req, res) => {
       select: "name pic email",
     });
 
-    await Chat.findByIdAndUpdate(req.body.chatId, {
-      latestMessage: message,
-    });
+    await Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: message });
 
     res.json(message);
   } catch (error) {
@@ -38,4 +51,4 @@ const sendMessage = asyncHandler(async (req, res) => {
   }
 });
 
-export default sendMessage;
+export { sendMessage, allMessages };

@@ -2,6 +2,9 @@ import asyncHandler from "express-async-handler";
 import Chat from "../models/chat.Model.js";
 import User from "../models/user.Model.js";
 
+//@description     Create or fetch One to One Chat
+//@route           POST /api/chat/
+//@access          Protected
 const accessChat = asyncHandler(async (req, res) => {
   const { userId } = req.body;
 
@@ -48,19 +51,21 @@ const accessChat = asyncHandler(async (req, res) => {
   }
 });
 
+//@description     Fetch all chats for a user
+//@route           GET /api/chat/
+//@access          Protected
 const fetchChats = asyncHandler(async (req, res) => {
   try {
     Chat.find({ users: { $elemMatch: { $eq: req.user._id } } })
       .populate("users", "-password")
       .populate("groupAdmin", "-password")
       .populate("latestMessage")
-      .sort({ updateAt: -1 })
+      .sort({ updatedAt: -1 })
       .then(async (results) => {
         results = await User.populate(results, {
           path: "latestMessage.sender",
           select: "name pic email",
         });
-
         res.status(200).send(results);
       });
   } catch (error) {
@@ -69,9 +74,12 @@ const fetchChats = asyncHandler(async (req, res) => {
   }
 });
 
+//@description     Create New Group Chat
+//@route           POST /api/chat/group
+//@access          Protected
 const createGroupChat = asyncHandler(async (req, res) => {
   if (!req.body.users || !req.body.name) {
-    return res.status(400).send({ message: "Please fill all the fields" });
+    return res.status(400).send({ message: "Please Fill all the feilds" });
   }
 
   var users = JSON.parse(req.body.users);
@@ -79,7 +87,7 @@ const createGroupChat = asyncHandler(async (req, res) => {
   if (users.length < 2) {
     return res
       .status(400)
-      .send("More than 2 users are required to create a group chat");
+      .send("More than 2 users are required to form a group chat");
   }
 
   users.push(req.user);
@@ -103,13 +111,16 @@ const createGroupChat = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Rename Group
+// @route   PUT /api/chat/rename
+// @access  Protected
 const renameGroup = asyncHandler(async (req, res) => {
   const { chatId, chatName } = req.body;
 
   const updatedChat = await Chat.findByIdAndUpdate(
     chatId,
     {
-      chatName,
+      chatName: chatName,
     },
     {
       new: true,
@@ -120,37 +131,19 @@ const renameGroup = asyncHandler(async (req, res) => {
 
   if (!updatedChat) {
     res.status(404);
-    throw new Error("Chat not found");
+    throw new Error("Chat Not Found");
   } else {
     res.json(updatedChat);
   }
 });
 
-const addToGroup = asyncHandler(async (req, res) => {
-  const { chatId, userId } = req.body;
-
-  const added = await Chat.findByIdAndUpdate(
-    chatId,
-    {
-      $push: { users: userId },
-    },
-    {
-      new: true,
-    }
-  )
-    .populate("users", "-password")
-    .populate("groupAdmin", "-password");
-
-  if (!added) {
-    res.status(404);
-    throw new Error("Chat not found");
-  } else {
-    res.json(added);
-  }
-});
-
+// @desc    Remove user from Group
+// @route   PUT /api/chat/groupremove
+// @access  Protected
 const removeFromGroup = asyncHandler(async (req, res) => {
   const { chatId, userId } = req.body;
+
+  // check if the requester is admin
 
   const removed = await Chat.findByIdAndUpdate(
     chatId,
@@ -166,9 +159,37 @@ const removeFromGroup = asyncHandler(async (req, res) => {
 
   if (!removed) {
     res.status(404);
-    throw new Error("Chat not found");
+    throw new Error("Chat Not Found");
   } else {
     res.json(removed);
+  }
+});
+
+// @desc    Add user to Group / Leave
+// @route   PUT /api/chat/groupadd
+// @access  Protected
+const addToGroup = asyncHandler(async (req, res) => {
+  const { chatId, userId } = req.body;
+
+  // check if the requester is admin
+
+  const added = await Chat.findByIdAndUpdate(
+    chatId,
+    {
+      $push: { users: userId },
+    },
+    {
+      new: true,
+    }
+  )
+    .populate("users", "-password")
+    .populate("groupAdmin", "-password");
+
+  if (!added) {
+    res.status(404);
+    throw new Error("Chat Not Found");
+  } else {
+    res.json(added);
   }
 });
 
