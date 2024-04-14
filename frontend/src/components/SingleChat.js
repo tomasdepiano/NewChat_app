@@ -17,6 +17,9 @@ import { getSenderFull } from "../config/ChatLogics.js";
 import UpdateGroupChatModal from "./miscellaneous/UpdateGroupChatModal.js";
 import axios from "axios";
 import ScrollableChat from "./ScrollableChat.js";
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:4001");
 
 const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   const [messages, setMessages] = useState([]);
@@ -62,6 +65,14 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   useEffect(() => {
     fetchMessages();
   }, [selectedChat]);
+
+  socket.on("connect", () => {
+    console.log(socket.id);
+  });
+
+  socket.on("disconnected", () => {
+    console.log(socket.id);
+  });
 
   const sendMessage = async (event) => {
     if (event.key === "Enter" && newMessage) {

@@ -7,8 +7,11 @@ import colors from "colors";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import messageRoutes from "./routes/messageRoute.js";
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 const app = express();
+const httpServer = createServer(app);
 dotenv.config();
 connectDB();
 
@@ -25,6 +28,27 @@ app.use("/api/message", messageRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
+const socketPORT = process.env.SOCKETPORT || 4001;
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, console.log(`Server started on PORT ${PORT}`.yellow.bold));
+
+const io = new Server(httpServer, {
+  pingTimeout: 60000,
+  cors: {
+    origin: "*",
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log(`User ${socket.id} connected`);
+
+  socket.on("message", (data) => {
+    console.log(data);
+    io.emit("message", `${data}`);
+  });
+});
+
+httpServer.listen(socketPORT, () => {
+  console.log(`Socket server is listening on ${socketPORT}`);
+});
