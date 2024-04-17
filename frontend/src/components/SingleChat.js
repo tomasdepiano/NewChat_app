@@ -17,17 +17,26 @@ import { getSenderFull } from "../config/ChatLogics.js";
 import UpdateGroupChatModal from "./miscellaneous/UpdateGroupChatModal.js";
 import axios from "axios";
 import ScrollableChat from "./ScrollableChat.js";
-import { io } from "socket.io-client";
+import io from "socket.io-client";
 
-const socket = io("http://localhost:4001");
+const ENDPOINT = "http://localhost:4001";
+
+var socket, selectedChatCompare;
 
 const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [newMessage, setNewMessage] = useState();
+  const [socketConnected, setSocketConnected] = useState(false);
 
   const { user, selectedChat, setSelectedChat } = ChatState();
   const toast = useToast();
+
+  useEffect(() => {
+    socket = io(ENDPOINT);
+    socket.emit("setup", user);
+    socket.on("connection", () => setSocketConnected(true));
+  });
 
   const fetchMessages = async () => {
     if (!selectedChat) return;
@@ -46,10 +55,10 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
         config
       );
 
-      console.log(messages);
-
       setMessages(data);
       setLoading(false);
+
+      socket.emit("join chat", selectedChat._id);
     } catch (error) {
       toast({
         title: "Error Occured",
@@ -64,14 +73,21 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
 
   useEffect(() => {
     fetchMessages();
+
+    selectedChatCompare = selectedChat;
   }, [selectedChat]);
 
-  socket.on("connect", () => {
-    console.log(socket.id);
-  });
-
-  socket.on("disconnected", () => {
-    console.log(socket.id);
+  useEffect(() => {
+    socket.on("message received", (newMessageReceived) => {
+      if (
+        !selectedChatCompare ||
+        selectedChatCompare._id !== newMessageReceived.chat._id
+      ) {
+        // give notification
+      } else {
+        setMessages([...messages, newMessageReceived]);
+      }
+    });
   });
 
   const sendMessage = async (event) => {
@@ -94,6 +110,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
         );
         console.log(data);
 
+        socket.emit("new message", data);
         setMessages([...messages, data]);
       } catch (error) {
         toast({
