@@ -9,6 +9,7 @@ import chatRoutes from "./routes/chatRoutes.js";
 import messageRoutes from "./routes/messageRoute.js";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import path from "path";
 
 const app = express();
 const httpServer = createServer(app);
@@ -24,6 +25,18 @@ app.get("/", (req, res) => {
 app.use("/api/user", userRouters);
 app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
+
+// ------------ Deployment ----------------
+
+const __dirname1 = path.resolve();
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname1, "/frontend/build")));
+} else {
+  app.get("/", (req, res) => {
+    res.send("API is running successfully!");
+  });
+}
+// ------------ Deployment ----------------
 
 app.use(notFound);
 app.use(errorHandler);
@@ -67,6 +80,11 @@ io.on("connection", (socket) => {
 
       socket.in(user._id).emit("message received", newMessageReceived);
     });
+  });
+
+  socket.off("setup", () => {
+    console.log("USER DISCONNECTED");
+    socket.leave(userData._id);
   });
 });
 
