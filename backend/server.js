@@ -9,7 +9,6 @@ import chatRoutes from "./routes/chatRoutes.js";
 import messageRoutes from "./routes/messageRoute.js";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import path from "path";
 
 const app = express();
 const httpServer = createServer(app);
